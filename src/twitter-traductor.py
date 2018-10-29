@@ -6,89 +6,137 @@ import nltk
 import collections
 import os
 
-def remplaza_acentos(s):
-    s = re.sub("\'a",'A',s)
-    s = re.sub("\'e",'E',s)
-    s = re.sub("\'i",'I',s)
-    s = re.sub("\'o",'O',s)
-    s = re.sub("\'u",'U',s)
-    s = re.sub("\'n",'N',s)
-    s = re.sub('\"u','U',s)
-    return s
+acentos_regex = re.compile(r"('[aeiou]|\"u|'n)")
+recupera_acento = re.compile(r'[AEIOUNW]')
+suspensivos_duda_remarcado_regex = re.compile(
+                    r'\.\.+|'# puntos suspensivos
+                    r'\?+|' # duda
+                    r'\?_\?|'
+                    r'\!+' # remarcado
+                )
 
-def recupera_acentos(s):
-    s = re.sub('A',"\'a",s)
-    s = re.sub('E',"\'e",s)
-    s = re.sub('I',"\'i",s)
-    s = re.sub('O',"\'o",s)
-    s = re.sub('U',"\'u",s)
-    s = re.sub('N',"\'n",s)
-    s = re.sub('U','\"u',s)
-    return s
+molestia_regex = re.compile(
+                    r'\s+:@\s*|'
+                    r'\bfail\b',
+                    re.IGNORECASE
+                 )
+
+tristeza_regex = re.compile(
+                    r"\s+:'\(+\s*|"
+                    r'\s+:\(+\s*|'
+                    r'\s+:\s?\/\s*|'
+                    r'\s+:c\s*|'
+                    r'\s+=\(\s*|'
+                    r'\s+\=\s*|'
+                    r'\s+-[_\.]-\s*|'
+                    r'\s+u[_\.]u\s+|'
+                    r'\s+--\s*',
+                    re.IGNORECASE
+                 )
+
+alegria_regex = re.compile(
+                    r'\s*:-?\)+\s*|'
+                    r'\s*;\)\s*|'
+                    r'\s*\*-\*\s*|'
+                    r'\s*:b\s*|'
+                    r'\s*c:\s*|'
+                    r'\s*:d+\s*|'
+                    r'\s*=\)\s*\|'
+                    r'\s*<;3\s*|'
+                    r'\s*&lt;3\s*|'
+                    r'\byay\b',
+                    re.IGNORECASE
+                )
+
+sorpresa_regex = re.compile(
+                    r'\s*:O\s*|'
+                    r'\s*d:\*',
+                    re.IGNORECASE
+                 )
+
+disgusto_regex = re.compile(
+                    r'\s*:p\s*',
+                    re.IGNORECASE
+                 )
+
+poco_disgusto_regex = re.compile(
+                        r'\s*:s+\s*',
+                        re.IGNORECASE
+                      )
+
+insulto_regex = re.compile(
+                    r'\s*\.[l\|]\.\s*|'
+                    r'\s+o.o\s*|'
+                    r'\bfuck\b|'
+                    r'\bchinguen\b|'
+                    r'odio jarocho\s*',
+                    re.IGNORECASE
+                )
+
+admiracion_regex = re.compile(
+                    r'\^\^'
+                   )
+
+pensando_regex = re.compile(
+                    r'\s*:\|\s*'
+                 )
+
+coma_regex = re.compile(
+                r', '
+             )
+
+ironia_regex = re.compile(
+                r'\!+\?+'
+               )
+
+mas_regex = re.compile(
+                r'\+'
+            )
+def reemplaza_acentos(m):
+    mapper = {"'a": 'A', "'e": 'E', "'i": 'I', "'o": 'O', "'u": 'U', '"u': 'W', "'n": 'N'}
+    return mapper[m.group(0)]
+
+def recupera_acentos(m):
+    mapper = {'A': "'a", 'E': "'e", 'I': "'i", 'O': "'o", 'U': "'u", 'W': '"u', 'N': "'n"}
+    return mapper[m.group(0)]
+
+def reemplaza_suspensivos_duda_remarcado_2ps(m):
+    mapper = {'.': ' <puntos_suspensivos> ', '?': ' <duda> ', '!': ' <remarcando> ', ':': ' <dos_puntos>'}
+    return mapper[m.group(0)[0]]
 
 def remplaza_caritas(s):
-    s = re.sub('\.\.+'," <puntos_supensivos> ",s)
-    s = re.sub('\?+',' <duda> ',s)
-    s = re.sub('!+',' <remarcando> ',s)
-    s = re.sub(":@ ",' <molestia> ',s)
-    s = re.sub(":@$",' <molestia> ',s)
-    s = re.sub(":\'\(+",' <tristeza> ',s)
-    s = re.sub(":\(+",' <tristeza> ',s)
-    s = re.sub(":\)+",' <alegria> ',s)
-    s = re.sub("(;\))+",' <alegria> ',s)
-    s = re.sub(":\-\)+",' <alegria> ',s)
-    s = re.sub(":\/ ",' <tristeza> ',s)
-    s = re.sub(":\/$",' <tristeza> ',s)
-    s = re.sub(": \/ ",' <tristeza> ',s)
-    s = re.sub(": \/$",' <tristeza> ',s)
-    s = re.sub("\*\-\*",' <alegria> ',s)
-    s = re.sub("\A:[Bb]\s",' <alegria> ',s)
-    s = re.sub("\s:[Bb]\s",' <alegria> ',s)
-    s = re.sub("\s:[Bb]$",' <alegria> ',s)
-    s = re.sub(":c ",' <tristeza> ',s)
-    s = re.sub(":c$",' <tristeza> ',s)
-    s = re.sub(" c: ",' <alegria> ',s)
-    s = re.sub(" c:$",' <alegria> ',s)
-    s = re.sub(":C ",' <tristeza> ',s)
-    s = re.sub(":C$",' <tristeza> ',s)
-    s = re.sub(":D ",' <alegria> ',s)
-    s = re.sub(":D$",' <alegria> ',s)
-    s = re.sub(":DD ",' <alegria> ',s)
-    s = re.sub(":DD$",' <alegria> ',s)
-    s = re.sub(":O ",' <sorpresa> ',s)
-    s = re.sub(":O$",' <sorpresa> ',s)
-    s = re.sub(":P ",' <disgusto> ',s)
-    s = re.sub(":P$",' <disgusto> ',s)
-    s = re.sub(":s ",' <poco_disgusto> ',s)
-    s = re.sub(":s$",' <poco_disgusto> ',s)
-    s = re.sub(":S+",' <poco_disgusto> ',s)
-    s = re.sub("\=\)",' <alegria> ',s)
-    s = re.sub("\=\(",' <tristeza> ',s)
-    s = re.sub("\.l\. ",' <insulto> ',s)
-    s = re.sub("\-\_\-",' <tristeza> ',s)
-    s = re.sub("\-\.\-",' <tristeza> ',s)
-    s = re.sub("\?\_\?",' <duda> ',s)
-    s = re.sub('\^\^$',' <admiracion> ',s)
-    s = re.sub("\.\|\.\s",' <insulto> ',s)
-    s = re.sub("\.\|\.$",' <insulto> ',s)
-    s = re.sub("\:\|\s",' <pensando> ',s)
-    s = re.sub("\:[Pp]\s",' <molestia> ',s)
-    s = re.sub("\:[Pp]$",' <molestia> ',s)
-    s = re.sub("\:\|$",' <pensando> ',s)
-    s = re.sub("\su\.u ",' <tristeza> ',s)
-    s = re.sub("\su\.u$",' <tristeza>',s)
-    s = re.sub("\su\_u ",' <tristeza> ',s)
-    s = re.sub("\su\_u$",' <tristeza> ',s)
-    s = re.sub("\s--'$",' <tristeza> ',s)
-    s = re.sub(" D: ",' <sorpresa> ',s)
-    s = re.sub("^D: ",' <sorpresa> ',s)
-    s = re.sub("D:$",' <sorpresa> ',s)
-    s = re.sub("<;3",' <alegria> ',s)
-    s = re.sub("&lt;3",' <alegria> ',s)
-    s = re.sub("\s[Oo].o$",' <insulto> ',s)
-    s = re.sub(', '," <coma> ",s)
-    s = re.sub('\!+\?+',' <ironia> ',s)
-    s = re.sub(' \+[\b\s] '," mAs ",s)
+    s = suspensivos_duda_remarcado_regex.sub(
+            reemplaza_suspensivos_duda_remarcado_2ps,
+            s
+        )
+    s = molestia_regex.sub(' <molestia> ', s)
+    s = tristeza_regex.sub(' <tristeza> ', s)
+    s = alegria_regex.sub(' <alegria> ', s)
+    s = sorpresa_regex.sub(' <sorpresa>', s)
+    s = disgusto_regex.sub(' <disgusto> ', s)
+    s = poco_disgusto_regex.sub(' <poco_disgusto> ', s)
+    s = insulto_regex.sub(' <insulto> ', s)
+    s = admiracion_regex.sub(' <admiracion> ', s)
+    s = pensando_regex.sub(' <pensando> ', s)
+    s = coma_regex.sub(' <coma> ', s)
+    s = ironia_regex.sub(' <ironia> ', s)
+    s = mas_regex.sub('mAs', s)
+
+#    s = re.sub(":P ",' <disgusto> ',s) no creo que sea disgusto
+#    s = re.sub(":P$",' <disgusto> ',s)
+#    s = re.sub("\-\_\-",' <tristeza> ',s) no creo que sea tristeza
+#    s = re.sub("\-\.\-",' <tristeza> ',s)
+#    s = re.sub("\:[Pp]\s",' <molestia> ',s) no creo que sea molestia
+#    s = re.sub("\:[Pp]$",' <molestia> ',s)
+#    s = re.sub("\su\.u ",' <tristeza> ',s) no creo que sea tristeza
+#    s = re.sub("\su\.u$",' <tristeza>',s)
+#    s = re.sub("\su\_u ",' <tristeza> ',s)
+#    s = re.sub("\su\_u$",' <tristeza> ',s)
+#    s = re.sub("\s--'$",' <tristeza> ',s)
+#    s = re.sub(" D: ",' <sorpresa> ',s) no creo que sea sorpresa
+#    s = re.sub("^D: ",' <sorpresa> ',s)
+#    s = re.sub("D:$",' <sorpresa> ',s)
+
     return s
 
 def remplaza_repeticiones(s):
@@ -168,6 +216,8 @@ def remplaza_repeticiones(s):
     s = re.sub('[Jj]o(jo)+\w*',' <risa> ',s)
     s = re.sub('[Jj]i(ji)+\w*',' <risa> ',s)
     s = re.sub('[Jj]u(ju)+\w*',' <risa> ',s)
+    s = re.sub('\Alol\s',' <risa> ',s)
+    s = re.sub('\slol\s',' <risa> ',s)
     s = re.sub('www\.','w3.',s) # disfraza el wwww.
     s = re.sub('WWW\.','W3.',s) # disfraza el WWWW.
     s = re.sub('WWW\s','W3',s) # disfraza el wwww.
@@ -181,15 +231,10 @@ def remplaza_repeticiones(s):
     return s
 
 def remplaza_contracciones(s):
-    s = re.sub("\A[Pp]/ ?k\s",'para que ',s)
-    s = re.sub("\s[Pp]/ ?k\s",' para que ',s)
-    s = re.sub("\A[Bb]n$",'bien ',s)
-    s = re.sub("\s[Bb]n$",' bien ',s)
-    s = re.sub("\A[Bb]b\s",'black_berry ',s)
-    s = re.sub("\s[Bb]b$",' black_berry ',s)
-    s = re.sub("\s[Bb]b",' black_berry ',s)
-    s = re.sub("\A[Bb]uska\s",'busca ',s)
-    s = re.sub("\s[Bb]uska\s",' busca ',s)
+    s = re.sub("\b[Pp]/ ?k\b",'para que ',s)
+    s = re.sub("\b[Bb]n\b",'bien ',s)
+    s = re.sub("\b[Bb]b\b",'black_berry ',s)
+    s = re.sub("\b[Bb]uska\b",'busca ',s)
     s = re.sub("\A[Dd]\s",'de ',s)
     s = re.sub("\s[Dd]\s",' de ',s)
     s = re.sub("\A[Dd]ike\s",'dice ',s)
@@ -297,6 +342,8 @@ def remplaza_contracciones(s):
     s = re.sub("\sekis\s",' <indiferencia> ',s)
     s = re.sub("\Afuck u\s",' <insulto> ',s)
     s = re.sub("\sfuck u\s",' <insulto> ',s)
+    s = re.sub("\Afuck\s",' <insulto> ',s)
+    s = re.sub("\sfuck\s",' <insulto> ',s)
     s = re.sub("\Aflaka\s",'flaca ',s)
     s = re.sub("\sflaka\s",' flaca ',s)
     s = re.sub("\Afut\s",'futbol ',s)
@@ -475,6 +522,8 @@ def remplaza_contracciones(s):
     s = re.sub("\s[Aa]ssholes"," culos ",s)
     s = re.sub("\A[Aa]sshole","culo ",s)
     s = re.sub("\s[Aa]sshole"," culo ",s)
+    s = re.sub("\A[Ww]ebos\s","wevos ",s)
+    s = re.sub("\A[Ww]evo\s","wevo ",s)
     s = re.sub("\A[Ww]evos\s","wevos ",s)
     s = re.sub("\s[Ww]evos\s"," wevos ",s)
     s = re.sub("\A[Cc]he\s","pinche ",s)
@@ -491,6 +540,8 @@ def remplaza_contracciones(s):
     s = re.sub("\s[Kk]gn\s"," cagOn ",s)
     s = re.sub("\A[Mm]\s","me ",s)
     s = re.sub("\s[Mm]\s"," me ",s)
+    s = re.sub("\A[Mm]ex\s","mExico ",s)
+    s = re.sub("\s[Mm]ex\s"," mExico ",s)
     s = re.sub("\Aa la c\s","a la chingada ",s)
     s = re.sub("\sa\sla\sc\s"," a la chingada ",s)
     s = re.sub("\Acbrn\s","cabrOn ",s)
@@ -535,10 +586,10 @@ def remplaza_contracciones(s):
     s = re.sub("\snot bad\s",' <comentario-positivo> ',s)
     s = re.sub("\Afriend\s",'por favor ',s)
     s = re.sub("\sfriend\s",' por favor ',s)
-    s = re.sub("\A[Dd]\s","por diOs ",s)
-    s = re.sub("\s[Dd]\s"," por diOs ",s)
-    s = re.sub("\Ax[Dd]$","por diOs ",s)
-    s = re.sub("\sx[Dd]$"," por diOs ",s)
+    s = re.sub("\A[Dd]\s","por dios ",s)
+    s = re.sub("\s[Dd]\s"," por dios ",s)
+    s = re.sub("\Ax[Dd]$","por dios ",s)
+    s = re.sub("\sx[Dd]$"," por dios ",s)
     s = re.sub("\Abad quality\s",'mala calidad ',s)
     s = re.sub("\sbad quality\s",' mala calidad ',s)
     s = re.sub("\Abad quality$",'mala calidad ',s)
@@ -547,8 +598,6 @@ def remplaza_contracciones(s):
     s = re.sub("\sBB\.?\s",' black_berry ',s)
     s = re.sub("\Abb\.?\s",'black_berry ',s)
     s = re.sub("\sbb\.?\s",' black_berry ',s)
-    s = re.sub("\Afail\s",' <molestia> ',s)
-    s = re.sub("\sfail\s",' <molestia> ',s)
     s = re.sub("\Azaz\s",' <sorpresa> ',s)
     s = re.sub("\szaz\s",' <sorpresa> ',s)
     s = re.sub("\Ac.c.p.\s",'con_copia_para ',s)
@@ -585,32 +634,45 @@ def known_edits2(word):
 
 def known(words): return set(w for w in words if dic[w]>1)
 
+def candidatos_validos(lista_palabras):
+    return set(e1 for e1 in lista_palabras if dic[e1]>1)
+
 def correct(word):
     candidates = known([word]) or known(edits1(word)) or known_edits2(word) or [word]
+    #cvs = candidatos_validos(candidates)
+    #print candidates
+    #print cvs
+    has_accent = re.search('\|('+word+')\|', '|'+'|'.join(candidates)+'|', re.IGNORECASE)
+    if has_accent:
+        return has_accent.group(1)
     return max(candidates, key=lambda w: dic[w])
 
 def clasifica_palabra(word):
-    if insts[word]>1 :
+    if int(insts[word])>1 :
         w2 = 'institucion('+word+')'
     else:
-        if servs[word]>1 :
+        if int(servs[word])>1 :
             w2 = 'servicio('+word+')'
         else:
-            if marcs[word]>1 :
+            if int(marcs[word])>1 :
                 w2 = 'marca('+word+')'
             else:
-                if sigls[word]>1 :
+                if int(sigls[word])>1 :
                     w2 = 'siglas('+word+')'
                 else:
-                    if emprs[word]>1 :
+                    if int(emprs[word])>1 :
                         w2 = 'empresa('+word+')'
                     else:
-                        if locs[word]>1 :
+                        if int(locs[word])>1 :
                             w2 = 'locacion('+word+')'
                         else:
-                            if dic[word]<2 :
-                                #w2 = correct(word)
-                                w2 = 'pal_desc('+word+')'
+                            if int(dic[word])<2:
+                                w2 = correct(word)
+                                if int(dic[w2])>2:
+                                    w2=w2    # linea falsa
+                                    # print 'Found: %s'%w2
+                                else:
+                                    w2 = 'pal_desconocida('+word+')'
                             else:
                                 w2 = word
     return w2
@@ -619,26 +681,34 @@ ruta = os.path.dirname(__file__)
 
 alphabet = 'AEIOUNWabcdefghijklmnopqrstuvwxyz'
 
-dic = carga_tabla(ruta + '/datos/esp_unigrama_v10.csv')
+dic = carga_tabla(ruta + '/datos/rae_corpus_v03.csv')
 sigls = carga_tabla(ruta + '/datos/esp_siglas.csv')
 emprs = carga_tabla(ruta + '/datos/esp_empresas.csv')
 servs = carga_tabla(ruta + '/datos/esp_servicios.csv')
 marcs = carga_tabla(ruta + '/datos/esp_marcas.csv')
 locs = carga_tabla(ruta + '/datos/esp_locaciones.csv')
 insts = carga_tabla(ruta + '/datos/esp_instituciones.csv')
+#print len(dic)
+#count = 0
+#for k in dic:
+#    if int(dic[k]) < 2:
+#        count += 1
+#print count
+#import sys
+#sys.exit(0)
 
-# c = csv.writer(open("twitter_spanish.csv", "wb"))          
-with open(ruta + '/entradas/twitter-muestra-Elu-min.csv', 'rU') as lineas:
+c = csv.writer(open(ruta + "/entradas/twitter_spanish_mejorado.csv", "wb"))
+
+with open(ruta + '/entradas/sentiment_spanish.csv', 'rU') as lineas:
         index = 1
         for row in csv.reader(lineas, delimiter=','):
             s1 = row[0]
 
             s1 = re.sub(' +',' ',s1) # deja un solo blanco entre cada palabra
             print "I-" + str(index) +": " + s1 #row[<index>]
-
             s1 = remplaza_caritas(s1)
             s1 = s1.lower() # Cambia mayusculas a minusculas
-            s1 = remplaza_acentos(s1)
+            s1 = acentos_regex.sub(reemplaza_acentos, s1)
             s1 = remplaza_repeticiones(s1)
             s1 = remplaza_contracciones(s1)
 
@@ -700,10 +770,14 @@ with open(ruta + '/entradas/twitter-muestra-Elu-min.csv', 'rU') as lineas:
 
             s2 = ' '.join(items)
 
-            s2 = recupera_acentos(s2)
+            s2 = recupera_acento.sub(recupera_acentos, s2)
 
             print "F-{0}: {1}".format(str(index), s2)
-            print
+            # print
             index += 1
-            # row[0]=s1
-            # c.writerow(row)
+            row[0]=s2
+            c.writerow(row)
+
+
+
+print "Fin"
